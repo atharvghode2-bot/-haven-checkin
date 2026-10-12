@@ -1,0 +1,125 @@
+AI Mental Health Screening Chatbot
+System Architecture
+Mini-project  |  B.Tech CSE (Data Science)
+1. Overview
+The app is a conversational check-in assistant for students. It asks questions adapted from validated screening instruments (PHQ-9 and GAD-7 style), accepts typed or spoken answers, and optionally reads facial expression through the camera. An NLP/LLM engine scores each session for stress, anxiety and risk. Low-risk sessions end with self-help tips; high-risk sessions send a confidential alert to a counselor, who sees an anonymous ID and mood trends on a dashboard.
+The system has three input signals (questionnaire answers, text/voice sentiment, and facial emotion) that are combined into one risk score. It is a screening aid, not a diagnostic tool.
+2. Architecture diagram
+Figure 1. Layered architecture with on-device face emotion recognition
+3. Components
+Layer
+Component
+Technology
+Responsibility
+Student device
+Chat UI
+React
+Check-in conversation with text or voice input; consent screen; tips at the end of a session.
+Student device
+Face emotion
+face-api.js / TensorFlow.js / MediaPipe
+Opens the camera after consent, detects the face and classifies emotion in the browser. Sends scores only.
+Counselor device
+Counselor dashboard
+React
+Alert list and mood/stress trends per anonymous student ID.
+Backend
+Auth and sessions
+FastAPI, JWT
+Login, roles (student / counselor), anonymous IDs, session state.
+Backend
+Question flow
+FastAPI
+Serves the PHQ-9 / GAD-7 style question bank and decides the next question.
+Backend
+Fusion and alerts
+FastAPI
+Combines questionnaire, text and face scores; creates alerts for high-risk cases.
+AI engine
+Speech-to-text
+Whisper (HuggingFace)
+Transcribes spoken answers to text.
+AI engine
+Sentiment model
+LangChain, HuggingFace
+Scores mood and stress from free-text answers.
+AI engine
+Risk scoring
+Python, rules + LLM
+Produces a risk level and runs the rule-based crisis check.
+Data
+MongoDB
+MongoDB
+Stores sessions, responses, scores, alerts and trends.
+4. Check-in data flow
+The student opens the app, accepts the consent screen, and turns the camera on if they want to.
+The student answers each question by typing or speaking. The browser sends the answers to the backend.
+In parallel, the face model runs locally in the browser and sends averaged emotion scores for each question.
+The backend passes the text (or transcript) to the AI engine for sentiment and risk scoring.
+The fusion step combines all scores, saves the results in MongoDB and decides whether to raise an alert.
+Low-risk sessions close with self-help tips. High-risk sessions alert the counselor and show a helpline to the student.
+5. Face emotion module (on-device)
+Facial emotion recognition runs entirely inside the student's browser. The video never leaves the device, and only emotion scores such as {sad: 0.62, neutral: 0.30} are sent to the backend.
+How it works
+Camera: navigator.mediaDevices.getUserMedia() after explicit consent; one frame is sampled every 1-2 seconds while the student answers.
+Model: face detection followed by an expression classifier (happy, sad, angry, fearful, neutral, surprised) using face-api.js, TensorFlow.js or MediaPipe Face Landmarker.
+Output: scores averaged over each question and sent with the answer. No images or video are uploaded or stored.
+Evaluation: FER2013, AffectNet or CK+ can be used to measure accuracy for the project report.
+Why on-device
+Privacy: facial images of students are never transmitted or stored.
+Lower server load and no video upload bandwidth.
+Easier to justify in a mental health setting, where trust matters.
+Limitations
+Facial emotion models are only moderately accurate (about 65-75% on FER2013) and do worse with real webcam footage.
+A face shows expression, not feeling. Someone can look neutral while anxious, so this is a weak signal.
+Models can be biased across skin tones, lighting and glasses. The app must work fully without the camera.
+The camera score alone must never trigger a high-risk alert.
+6. Score fusion
+The three signals are combined into one risk score. The weights below are a starting point to be tuned and described in the methodology:
+final_risk = 0.5 x questionnaire + 0.3 x text sentiment + 0.2 x face emotion
+Questionnaire scores use the standard PHQ-9 / GAD-7 totals, calculated with fixed formulas, not by the LLM.
+The LLM is used for conversational tone and free-text sentiment only.
+The face score has the lowest weight and supports a flag only when text or answers also show concern.
+7. Safety and privacy
+Rule-based crisis check: keyword and phrase detection on every message, independent of the LLM. If it fires, the app immediately shows a helpline (India: Tele-MANAS 14416) and alerts the counselor.
+Anonymity: students are stored under an anonymous ID. The ID-to-name mapping sits in a separate collection that only the counselor role can access.
+Consent: a consent screen on first use, with separate opt-in for the camera and a visible 'camera on' indicator that can be turned off at any time.
+Data protection: encryption in transit and at rest; no images or video stored; only scores kept.
+Disclaimer: a clear message that this is a screening aid and not a diagnosis.
+8. Data model and API
+MongoDB collections
+Collection
+Main fields
+users
+anon_id, role, created_at, consent_flags (text, voice, camera)
+sessions
+session_id, anon_id, started_at, ended_at, final_risk, risk_level
+responses
+session_id, question_id, answer_text, sentiment, questionnaire_score, face_scores
+alerts
+alert_id, anon_id, session_id, risk_level, created_at, status, counselor_notes
+counselors
+counselor_id, name, email, assigned_students (anonymous IDs)
+API routes (FastAPI)
+Method
+Route
+Purpose
+POST
+/sessions
+Start a new check-in session.
+POST
+/sessions/{id}/answer
+Submit an answer with face scores; returns the next question.
+POST
+/sessions/{id}/finish
+Close the session, run fusion, return tips or crisis info.
+GET
+/students/{id}/trends
+Mood and stress trend data for the dashboards.
+GET
+/alerts
+List of open alerts for counselors.
+9. Future scope
+Multi-language support for regional languages.
+Counselor referral flow that auto-schedules a session when a student is flagged.
+Peer support matching for shared themes.

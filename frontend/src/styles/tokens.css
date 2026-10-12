@@ -1,0 +1,72 @@
+/* Haven Check-in Editorial Wellness Design Tokens - Warm Ivory, Terracotta & Lavender Identity */
+:root {
+  /* Warm Ivory & Natural Earth Surfaces */
+  --color-background: #FCF9F6;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #292536;
+  --color-blush: #F8EDE8;
+  --color-border: #E7D6CD;
+  --color-border-subtle: #F2E8E2;
+
+  /* Deep Terracotta & Rust Palette */
+  --color-terracotta: #8A2D16;
+  --color-terracotta-hover: #732410;
+  --color-rust: #9B351B;
+  --color-rust-footer: #8A2D16;
+  --color-rust-footer-fg: #FCF9F6;
+
+  /* Haven Signature Soft Lavender & Rose */
+  --color-primary: #8A7BB0;
+  --color-primary-hover: #7869A0;
+  --color-on-primary: #FFFFFF;
+  --color-secondary: #5E5671;
+  --color-secondary-hover: #484157;
+  --color-on-secondary: #FFFFFF;
+  --color-accent: #8A2D16;
+  --color-on-accent: #FFFFFF;
+  --color-muted-rose: #C58D9B;
+
+  /* Typography & Neutral Text */
+  --color-foreground: #292536;
+  --color-muted-foreground: #686474;
+  --color-muted: #F5EFEB;
+  --color-subtle: #8E8A99;
+
+  /* Status Colors */
+  --color-cam-active: #22C55E;
+  --color-cam-connecting: #F59E0B;
+  --color-cam-off: #9CA3AF;
+  --color-destructive: #B91C1C;
+  --color-on-destructive: #FFFFFF;
+  --color-ring: #8A7BB0;
+  --color-band-lower: #059669;
+  --color-band-moderate: #D97706;
+  --color-band-elevated: #B91C1C;
+
+  /* Fonts */
+  --font-heading: "Lora", "Cormorant Garamond", Georgia, serif;
+  --font-body: "DM Sans", "Raleway", -apple-system, sans-serif;
+
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3.5rem;
+  --space-3xl: 5rem;
+  --space-4xl: 7rem;
+
+  /* Radii & Shadows */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 1px 3px rgba(41, 37, 54, 0.04);
+  --shadow-md: 0 4px 16px rgba(41, 37, 54, 0.06);
+  --shadow-lg: 0 12px 30px rgba(138, 45, 22, 0.08);
+
+  --focus: 0 0 0 3px rgba(138, 123, 176, 0.35);
+  --max: 1140px;
+  --nav-h: 76px;
+  --ease: 220ms ease;
+}
