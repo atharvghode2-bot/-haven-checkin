@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  Bot,
   Calendar,
   ChevronRight,
   ExternalLink,
@@ -94,6 +95,10 @@ export function StudentHome() {
           <Link className="btn btn-primary btn-lg" to="/check-in">
             <PlusCircle size={17} aria-hidden="true" />
             Take Your Check-in
+          </Link>
+          <Link className="btn btn-secondary btn-lg" to="/chat">
+            <Bot size={17} aria-hidden="true" />
+            Talk to AI Companion
           </Link>
           <Link className="btn btn-secondary" to="/privacy">
             Privacy Policy

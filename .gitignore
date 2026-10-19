@@ -22,3 +22,8 @@ backend/data/
 .vscode/
 *.sqlite
 *.db
+
+# Temporary workspace, backup, and agent directories
+.agent/
+frontend_backup_before_redesign/
+temp_redesign_zip/

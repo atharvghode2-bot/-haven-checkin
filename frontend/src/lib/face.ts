@@ -31,10 +31,41 @@ export type FaceSamplerResult = {
   model: string;
 };
 
+export type RecentEmotionSummary = {
+  emotions: EmotionMap;
+  dominantEmotion: string;
+  dominantScore: number;
+  sampleCount: number;
+  lastUpdated: number;
+};
+
+export type FaceSessionSummary = {
+  sampleCount: number;
+  sample_count?: number;
+  dominantEmotion: string;
+  dominant_emotion?: string;
+  dominantScore: number;
+  dominant_score?: number;
+  distribution: Record<string, number>;
+  meanScores: EmotionMap;
+  mean_scores?: EmotionMap;
+  trajectory: string;
+  timestamp: number;
+  isActive: boolean;
+  is_active?: boolean;
+  isStale: boolean;
+  is_stale?: boolean;
+  limitations: string;
+};
+
 export type FaceSamplerHandle = {
   stop: () => FaceSamplerResult;
+  reset: () => void;
   getSnapshot: () => SamplerState;
+  getRecentSummary: (windowSize?: number) => RecentEmotionSummary | null;
+  getSessionSummary: () => FaceSessionSummary;
 };
+
 
 const EMOTION_KEYS: (keyof EmotionMap)[] = [
   "neutral",
@@ -161,6 +192,27 @@ function describeDominant(emotions: EmotionMap): string {
  * - Rejects frames without a face detected.
  * - Aggregates valid observations across the session.
  */
+function emptySessionSummary(reason = "Camera tracking was not active."): FaceSessionSummary {
+  return {
+    sampleCount: 0,
+    sample_count: 0,
+    dominantEmotion: "neutral",
+    dominant_emotion: "neutral",
+    dominantScore: 0,
+    dominant_score: 0,
+    distribution: {},
+    meanScores: { neutral: 1, happy: 0, sad: 0, angry: 0, fearful: 0, surprised: 0, disgusted: 0 },
+    mean_scores: { neutral: 1, happy: 0, sad: 0, angry: 0, fearful: 0, surprised: 0, disgusted: 0 },
+    trajectory: "No camera observation frames collected.",
+    timestamp: Date.now(),
+    isActive: false,
+    is_active: false,
+    isStale: false,
+    is_stale: false,
+    limitations: reason,
+  };
+}
+
 export async function startFaceSampler(
   video: HTMLVideoElement,
   onStateChange: (state: SamplerState) => void,
@@ -188,7 +240,10 @@ export async function startFaceSampler(
     });
     return {
       stop: () => ({ emotions: null, sampleCount: 0, validFrames: 0, model: "none" }),
+      reset: () => {},
       getSnapshot: () => currentState,
+      getRecentSummary: () => null,
+      getSessionSummary: () => emptySessionSummary("Camera not supported in this browser"),
     };
   }
 
@@ -228,16 +283,34 @@ export async function startFaceSampler(
     }
     return {
       stop: () => ({ emotions: null, sampleCount: 0, validFrames: 0, model: "none" }),
+      reset: () => {},
       getSnapshot: () => currentState,
+      getRecentSummary: () => null,
+      getSessionSummary: () => emptySessionSummary(currentState.statusText),
     };
   }
 
-  // 3. Attach stream to hidden video element
+
+  // 3. Attach stream to video element and ensure playback
   video.srcObject = stream;
+  video.muted = true;
+  video.playsInline = true;
+  video.autoplay = true;
   try {
     await video.play();
   } catch {
     // Autoplay policy or video play issue
+  }
+
+  if (video.videoWidth === 0) {
+    await new Promise<void>((resolve) => {
+      const handler = () => {
+        video.removeEventListener("loadedmetadata", handler);
+        resolve();
+      };
+      video.addEventListener("loadedmetadata", handler);
+      setTimeout(resolve, 600);
+    });
   }
 
   // 4. Initialize MediaPipe FaceLandmarker model in WebAssembly
@@ -267,9 +340,13 @@ export async function startFaceSampler(
     });
     return {
       stop: () => ({ emotions: null, sampleCount: 0, validFrames: 0, model: "none" }),
+      reset: () => {},
       getSnapshot: () => currentState,
+      getRecentSummary: () => null,
+      getSessionSummary: () => emptySessionSummary("Expression model could not load."),
     };
   }
+
 
   // Camera is active AND model pipeline is ready — now show green dot!
   notify({
@@ -279,6 +356,7 @@ export async function startFaceSampler(
   });
 
   const samples: EmotionMap[] = [];
+  let lastSampleTime = 0;
   let timerId: number | null = null;
   let active = true;
 
@@ -296,6 +374,7 @@ export async function startFaceSampler(
           if (blendshapes && blendshapes.length > 0) {
             const current = fromBlendshapes(blendshapes);
             samples.push(current);
+            lastSampleTime = Date.now();
 
             notify({
               facePresence: "detected",
@@ -368,8 +447,138 @@ export async function startFaceSampler(
         model: "MediaPipe-FaceLandmarker-FACS-v1",
       };
     },
+    reset(): void {
+      samples.length = 0;
+      lastSampleTime = 0;
+      notify({
+        statusText: "Camera active • Looking for face",
+        sampleCount: 0,
+        currentEmotions: null,
+        dominantEmotion: null,
+        facePresence: "searching",
+      });
+    },
     getSnapshot(): SamplerState {
       return currentState;
     },
+    getRecentSummary(windowSize = 6): RecentEmotionSummary | null {
+      if (!active || samples.length === 0) return null;
+      // Stale check: if last sample was more than 12 seconds ago, mark unavailable
+      if (Date.now() - lastSampleTime > 12000) return null;
+
+      const count = Math.max(1, windowSize);
+      const recent = samples.slice(-count);
+      // Require at least 3 samples to avoid reacting to a single instantaneous frame
+      if (recent.length < 3) return null;
+
+      const averaged = averageEmotions(recent);
+      let bestKey = "neutral";
+      let bestVal = averaged.neutral;
+      for (const key of EMOTION_KEYS) {
+        if (averaged[key] > bestVal) {
+          bestVal = averaged[key];
+          bestKey = key;
+        }
+      }
+      return {
+        emotions: averaged,
+        dominantEmotion: bestKey,
+        dominantScore: Math.round(bestVal * 1000) / 1000,
+        sampleCount: recent.length,
+        lastUpdated: lastSampleTime,
+      };
+    },
+    getSessionSummary(): FaceSessionSummary {
+      const isStale = lastSampleTime > 0 ? (Date.now() - lastSampleTime > 30000) : false;
+      const count = samples.length;
+      if (count === 0) {
+        return emptySessionSummary(active ? "Camera active but no face was detected in frame." : "Camera tracking was off.");
+      }
+      const mean = averageEmotions(samples);
+
+      // Dominant distribution: percentage of frames each emotion led
+      const dominants: Record<string, number> = {};
+      for (const k of EMOTION_KEYS) dominants[k] = 0;
+
+      for (const s of samples) {
+        let bestK = "neutral";
+        let bestV = s.neutral;
+        for (const k of EMOTION_KEYS) {
+          if (s[k] > bestV) {
+            bestV = s[k];
+            bestK = k;
+          }
+        }
+        dominants[bestK] = (dominants[bestK] || 0) + 1;
+      }
+
+      const distribution: Record<string, number> = {};
+      for (const k of EMOTION_KEYS) {
+        distribution[k] = Math.round((dominants[k] / samples.length) * 1000) / 1000;
+      }
+
+      let overallDominant = "neutral";
+      let overallMax = 0;
+      for (const k of EMOTION_KEYS) {
+        if (dominants[k] > overallMax) {
+          overallMax = dominants[k];
+          overallDominant = k;
+        }
+      }
+
+      // Temporal trajectory
+      let trajectory = `Collected across ${samples.length} valid facial observation frames.`;
+      if (samples.length >= 6) {
+        const half = Math.floor(samples.length / 2);
+        const firstAvg = averageEmotions(samples.slice(0, half));
+        const secondAvg = averageEmotions(samples.slice(half));
+
+        const getTop = (m: EmotionMap) => {
+          let topK = "neutral";
+          let topV = m.neutral;
+          for (const k of EMOTION_KEYS) {
+            if (m[k] > topV) {
+              topV = m[k];
+              topK = k;
+            }
+          }
+          return topK;
+        };
+
+        const firstTop = getTop(firstAvg);
+        const secondTop = getTop(secondAvg);
+        if (firstTop === secondTop) {
+          trajectory = `Consistent ${firstTop} expression patterns observed across early and late observations.`;
+        } else {
+          trajectory = `Expression estimates shifted from predominantly ${firstTop} initially toward ${secondTop} in later frames.`;
+        }
+      }
+
+      const score = Math.round((mean[overallDominant as keyof EmotionMap] || 0) * 1000) / 1000;
+
+      return {
+        sampleCount: samples.length,
+        sample_count: samples.length,
+        dominantEmotion: overallDominant,
+        dominant_emotion: overallDominant,
+        dominantScore: score,
+        dominant_score: score,
+        distribution,
+        meanScores: mean,
+        mean_scores: mean,
+        trajectory,
+        timestamp: lastSampleTime || Date.now(),
+        isActive: active && !isStale,
+        is_active: active && !isStale,
+        isStale,
+        is_stale: isStale,
+        limitations:
+          "MediaPipe FaceLandmarker FACS blendshape observations. Physical cues reflect screen focus, lighting, and camera angle, and do not constitute an internal emotional ground truth or clinical diagnosis.",
+      };
+    },
   };
 }
+
+
+export { averageEmotions, EMOTION_KEYS };
+

@@ -1,0 +1,56 @@
+# Render Blueprint specification for Haven Check-in
+# Defines the FastAPI backend web service and the React/Vite static frontend.
+
+services:
+  # ---------------------------------------------------------------------------
+  # 1. FastAPI Backend (Render Web Service)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: haven-checkin-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: USE_MEMORY_DB
+        value: "true"
+      - key: SEED_DEMO_DATA
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRE_MINUTES
+        value: "720"
+      - key: CORS_ORIGINS
+        value: "https://haven-checkin-frontend.onrender.com,http://localhost:5173"
+      # Hosted Open-Source AI Inference (Qwen 2.5 via OpenRouter free tier)
+      - key: LLM_PROVIDER
+        value: "openrouter"
+      - key: LLM_BASE_URL
+        value: "https://openrouter.ai/api/v1"
+      - key: LLM_MODEL
+        value: "qwen/qwen-2.5-7b-instruct:free"
+      # Provide your free OpenRouter API key in the Render dashboard
+      - key: LLM_API_KEY
+        sync: false
+
+  # ---------------------------------------------------------------------------
+  # 2. React + Vite Frontend (Render Static Site)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: haven-checkin-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    # SPA routing: rewrites all unmatched routes to index.html so React Router works on refresh
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://haven-checkin-backend.onrender.com

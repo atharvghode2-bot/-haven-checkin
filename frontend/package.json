@@ -10,11 +10,14 @@
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^1.1.0",
+    "@react-three/fiber": "^9.8.1",
+    "@types/three": "^0.186.0",
     "lucide-react": "^0.487.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.5.0",
-    "recharts": "^2.15.2"
+    "recharts": "^2.15.2",
+    "three": "^0.186.1"
   },
   "devDependencies": {
     "@types/react": "^19.1.0",

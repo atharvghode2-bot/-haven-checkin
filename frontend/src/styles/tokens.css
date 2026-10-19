@@ -1,51 +1,68 @@
-/* Haven Check-in Editorial Wellness Design Tokens - Warm Ivory, Terracotta & Lavender Identity */
+/* Haven Check-in — Editorial Wellness Tokens
+   Warm Ivory, Deep Wine, Blush, Rose & Lavender Design System */
 :root {
-  /* Warm Ivory & Natural Earth Surfaces */
-  --color-background: #FCF9F6;
-  --color-card: #FFFFFF;
-  --color-card-foreground: #292536;
-  --color-blush: #F8EDE8;
-  --color-border: #E7D6CD;
-  --color-border-subtle: #F2E8E2;
+  /* Exact Redesign Core Palette */
+  --ivory: #fcf9f6;
+  --white: #ffffff;
+  --wine: #8a2d16;
+  --dark: #6f2414;
+  --blush: #f8ede8;
+  --rose: #c58d9b;
+  --lav: #8a7bb0;
+  --pale: #f5f2fa;
+  --ink: #292536;
+  --muted: #686474;
+  --line: #e7d6cd;
+  --serif: "Playfair Display", Georgia, serif;
+  --sans: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
-  /* Deep Terracotta & Rust Palette */
-  --color-terracotta: #8A2D16;
-  --color-terracotta-hover: #732410;
-  --color-rust: #9B351B;
-  --color-rust-footer: #8A2D16;
-  --color-rust-footer-fg: #FCF9F6;
+  /* Aliased Surface & Brand Colors */
+  --color-background: var(--ivory);
+  --color-card: var(--white);
+  --color-card-foreground: var(--ink);
+  --color-blush: var(--blush);
+  --color-border: var(--line);
+  --color-border-subtle: #f2e8e2;
 
-  /* Haven Signature Soft Lavender & Rose */
-  --color-primary: #8A7BB0;
-  --color-primary-hover: #7869A0;
-  --color-on-primary: #FFFFFF;
-  --color-secondary: #5E5671;
-  --color-secondary-hover: #484157;
-  --color-on-secondary: #FFFFFF;
-  --color-accent: #8A2D16;
-  --color-on-accent: #FFFFFF;
-  --color-muted-rose: #C58D9B;
+  --color-terracotta: var(--wine);
+  --color-terracotta-hover: var(--dark);
+  --color-rust: #9b351b;
+  --color-rust-footer: #4b1b12;
+  --color-rust-footer-fg: #dfccc5;
 
-  /* Typography & Neutral Text */
-  --color-foreground: #292536;
-  --color-muted-foreground: #686474;
-  --color-muted: #F5EFEB;
-  --color-subtle: #8E8A99;
+  --color-primary: var(--wine);
+  --color-primary-hover: var(--dark);
+  --color-primary-dark: var(--dark);
+  --color-on-primary: #ffffff;
+  --color-lavender-soft: var(--pale);
+  --color-secondary: var(--lav);
+  --color-secondary-hover: #7869a0;
+  --color-on-secondary: #ffffff;
+  --color-accent: var(--wine);
+  --color-on-accent: #ffffff;
+  --color-muted-rose: var(--rose);
+  --color-rose-soft: #faf0f3;
 
-  /* Status Colors */
-  --color-cam-active: #22C55E;
-  --color-cam-connecting: #F59E0B;
-  --color-cam-off: #9CA3AF;
-  --color-destructive: #B91C1C;
-  --color-on-destructive: #FFFFFF;
-  --color-ring: #8A7BB0;
+  --color-foreground: var(--ink);
+  --color-muted-foreground: var(--muted);
+  --color-muted: #f4eff8;
+  --color-subtle: #8e8a99;
+
+  /* Status and Observational Signals */
+  --color-cam-active: #22c55e;
+  --color-cam-connecting: #f59e0b;
+  --color-cam-off: #9ca3af;
+  --color-cam-error: #b91c1c;
+  --color-destructive: #b91c1c;
+  --color-on-destructive: #ffffff;
+  --color-ring: var(--lav);
   --color-band-lower: #059669;
-  --color-band-moderate: #D97706;
-  --color-band-elevated: #B91C1C;
+  --color-band-moderate: #d97706;
+  --color-band-elevated: #b91c1c;
 
-  /* Fonts */
-  --font-heading: "Lora", "Cormorant Garamond", Georgia, serif;
-  --font-body: "DM Sans", "Raleway", -apple-system, sans-serif;
+  /* Typography */
+  --font-heading: var(--serif);
+  --font-body: var(--sans);
 
   /* Spacing */
   --space-xs: 0.25rem;
@@ -58,15 +75,19 @@
   --space-4xl: 7rem;
 
   /* Radii & Shadows */
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-  --shadow-sm: 0 1px 3px rgba(41, 37, 54, 0.04);
-  --shadow-md: 0 4px 16px rgba(41, 37, 54, 0.06);
-  --shadow-lg: 0 12px 30px rgba(138, 45, 22, 0.08);
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-full: 9999px;
 
-  --focus: 0 0 0 3px rgba(138, 123, 176, 0.35);
-  --max: 1140px;
-  --nav-h: 76px;
-  --ease: 220ms ease;
+  --shadow-sm: 0 4px 12px rgba(41, 37, 54, 0.04);
+  --shadow-md: 0 12px 30px rgba(67, 42, 33, 0.08);
+  --shadow-lg: 0 24px 80px rgba(76, 48, 36, 0.15);
+  --shadow-glass: 0 18px 50px rgba(50, 36, 33, 0.13);
+
+  --focus: 0 0 0 3px rgba(138, 123, 176, 0.4);
+  --max: 1180px;
+  --nav-h: 70px;
+  --ease: 250ms cubic-bezier(0.16, 1, 0.3, 1);
 }

@@ -219,7 +219,7 @@ async def seed_demo(target) -> None:
     student = {
         "id": new_id("usr_"),
         "email": "student@haven.edu",
-        "name": "Maya",
+        "name": "ayan",
         "role": "student",
         "password_hash": hash_password("Student123!"),
         "anonymous_code": "STU-4C91",
@@ -229,7 +229,7 @@ async def seed_demo(target) -> None:
     counselor = {
         "id": new_id("usr_"),
         "email": "counselor@haven.edu",
-        "name": "Priya Shah",
+        "name": "Priya patil",
         "role": "counselor",
         "password_hash": hash_password("Counselor123!"),
         "anonymous_code": None,
@@ -301,3 +301,4 @@ async def seed_demo(target) -> None:
                 }
             )
     log.info("Seeded demo student@haven.edu / counselor@haven.edu")
+

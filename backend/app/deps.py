@@ -22,6 +22,18 @@ async def get_current_user(authorization: Annotated[str | None, Header()] = None
     return user
 
 
+async def get_optional_current_user(authorization: Annotated[str | None, Header()] = None) -> dict | None:
+    """Return the authenticated user if a valid bearer token is provided; otherwise None for guest."""
+    if not authorization or not authorization.lower().startswith("bearer "):
+        return None
+    token = authorization.split(" ", 1)[1].strip()
+    try:
+        payload = decode_access_token(token)
+    except InvalidTokenError:
+        return None
+    return await get_store().find_user_by_id(str(payload.get("sub")))
+
+
 def require_role(*roles: str):
     async def checker(user: Annotated[dict, Depends(get_current_user)]) -> dict:
         if user["role"] not in roles:

@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
-from .routers import alerts, auth, sessions, students
+from .routers import alerts, auth, chat, sessions, students
 from .store import init_store
 
 
@@ -25,6 +25,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
+    allow_origin_regex=r"^https?://([a-zA-Z0-9-]+\.onrender\.com|(localhost|127\.0\.0\.1)(:[0-9]+)?)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -33,6 +34,7 @@ app.include_router(auth.router)
 app.include_router(sessions.router)
 app.include_router(students.router)
 app.include_router(alerts.router)
+app.include_router(chat.router)
 
 
 @app.get("/health")

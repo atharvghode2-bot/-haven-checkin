@@ -1,343 +1,420 @@
-// Editorial Landing page: warm ivory surface, terracotta serif headlines, lifestyle visual, and clear multimodal methodology.
+// Editorial Landing Page: Warm Ivory surface, wine typography, Playfair Display & DM Sans,
+// glassmorphism cards, halo glow, and interactive accordion matching the new redesign.
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  ArrowRight,
-  Camera,
-  CheckCircle2,
-  ChevronDown,
-  FileText,
-  Lock,
-  MessageSquare,
-  ShieldCheck,
-  Sparkles,
-} from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
+import { Arrow, Spark } from "../components/Ui";
+
+interface StepItem {
+  num: string;
+  title: string;
+  text: string;
+  getUrl: (user: { role: "student" | "counselor" } | null) => string;
+}
+
+const steps: StepItem[] = [
+  {
+    num: "01",
+    title: "Pause & check in",
+    text: "Begin with a few gentle questions about what’s present for you right now.",
+    getUrl: (user) =>
+      user ? (user.role === "counselor" ? "/counselor" : "/check-in") : "/login?next=/check-in",
+  },
+  {
+    num: "02",
+    title: "Reflect with support",
+    text: "Put your experience into words with calm, AI-supported conversation.",
+    getUrl: () => "/chat",
+  },
+  {
+    num: "03",
+    title: "Notice your patterns",
+    text: "See thoughtful summaries that help you understand, never define, how you feel.",
+    getUrl: (user) =>
+      user ? (user.role === "counselor" ? "/counselor" : "/app") : "/login?next=/app",
+  },
+];
+
+const faqs = [
+  ["Is Haven a replacement for therapy?", "No. Haven is a private reflection and mental wellness screening aid, strictly non-diagnostic and not a medical service."],
+  ["How is my privacy protected?", "You stay in complete control of what you share. Haven asks for explicit consent before any optional feature, and camera tracking runs 100% locally on your device."],
+  ["What happens during a check-in?", "You’ll answer a few standard self-reflection questions (PHQ-9 and GAD-7) at your own pace, and receive a supportive, non-stigmatizing summary."],
+  ["Do I have to enable my camera?", "No, camera tracking is entirely optional and disabled by default. If enabled, facial cues are processed purely in your browser memory and video is never recorded or sent."],
+  ["Can I use Haven when I’m in crisis?", "Haven is not an emergency response service. If you are experiencing distress, please reach out to free 24/7 services like Tele-MANAS at 14416 or Emergency Services at 112."],
+];
 
 export function Landing() {
   const { user } = useAuth();
-  const startTo = user ? (user.role === "counselor" ? "/counselor" : "/check-in") : "/login?next=/check-in";
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
-
-  const faqs = [
-    {
-      q: "Is this a clinical diagnosis?",
-      a: "No. Haven Check-in is strictly an educational wellness screening aid and academic prototype. It calculates provisional load indicators to help students and campus counselors spot distress early, but it does not replace a licensed clinical psychologist or psychiatrist.",
-    },
-    {
-      q: "Does anyone see my face or video recording?",
-      a: "Never. Camera analysis runs 100% locally on your own machine using WebAssembly. Only high-level mathematical probabilities (e.g., calm, smiling) are calculated in your browser memory. No photographs, video files, or raw frames are ever saved, uploaded, or transmitted.",
-    },
-    {
-      q: "Can I take the check-in without using the camera or microphone?",
-      a: "Yes, completely. Voice input and camera analysis are entirely optional. The entire screening works smoothly using just your keyboard or mouse.",
-    },
-    {
-      q: "What does my campus counselor see?",
-      a: "Counselors only see an anonymous student code (such as STU-4C91) and screening score trends when an elevated threshold or safety alert is reached. Your personal contact information is protected.",
-    },
-  ];
+  const startCheckInUrl = user
+    ? user.role === "counselor"
+      ? "/counselor"
+      : "/check-in"
+    : "/login?next=/check-in";
 
   return (
-    <div className="landing-page reveal">
-      {/* Editorial Hero Section */}
-      <section className="hero editorial-hero">
-        <div className="hero-text-block">
-          <p className="eyebrow terracotta-eyebrow">
-            <Sparkles size={13} className="inline-icon" aria-hidden="true" />
-            YOUR SPACE TO CHECK IN
+    <div className="landing-editorial reveal">
+      {/* 1. Hero Section */}
+      <section className="hero container" aria-label="Haven Check-in Introduction">
+        <div className="hero-copy reveal">
+          <p className="eyebrow">
+            <i /> Your space to check in
           </p>
-          <h1 className="hero-headline">Make Space for How You Feel.</h1>
-          <p className="hero-lede">
-            Haven Check-in provides college students with a quiet, confidential screening experience.
-            Private reflections, standard validated assessments, and supportive guidance at your own pace.
+          <h1>
+            Make space for
+            <br />
+            <em>how you feel.</em>
+          </h1>
+          <p className="intro">
+            A gentle place to reflect, understand your emotional patterns, and take your next step toward well-being.
           </p>
-
-          <div className="hero-actions">
-            <Link className="btn btn-primary btn-lg" to={startTo}>
-              Start Your Check-in
+          <div className="actions">
+            <Link className="button primary" to={startCheckInUrl}>
+              <span>Start your check-in</span>
+              <Arrow />
             </Link>
-            <a className="btn btn-secondary" href="#how-it-works">
-              How it works <ArrowRight size={15} aria-hidden="true" />
+            <Link className="button secondary" to="/chat">
+              <span>Chat with AI Companion</span>
+              <Arrow />
+            </Link>
+            <a className="button glass" href="#how">
+              <span>Discover how it works</span>
+              <Arrow />
             </a>
           </div>
-
-          <div className="hero-guarantee">
-            <ShieldCheck size={16} className="text-terracotta" aria-hidden="true" />
-            <span>Confidential &bull; On-device privacy &bull; Academic wellness prototype</span>
-          </div>
+          <small>Private by design &nbsp;&bull;&nbsp; You’re always in control &nbsp;&bull;&nbsp; Confidential</small>
         </div>
 
-        {/* Hero Right Column: Warm Editorial Lifestyle Image */}
-        <div className="hero-visual-block">
-          <div className="editorial-image-frame">
-            <img
-              src="/images/wellness-hero.jpg"
-              alt="Peaceful morning wellness setting with a warm cup of tea, open journal, and dried flowers in soft sunlight"
-              className="editorial-image"
-              loading="eager"
-            />
-            <div className="editorial-caption">
-              <span>A quiet moment of reflection</span>
-              <span className="caption-dot">&bull;</span>
-              <span>Private, unhurried, and confidential</span>
+        <div className="hero-wellness-panel reveal">
+          <div className="wellness-card glass">
+            <div className="wellness-card-top">
+              <span className="spark-badge">
+                <Spark />
+              </span>
+              <span className="wellness-badge-tag">Gentle Reflection</span>
+            </div>
+
+            <div className="wellness-quote-block">
+              <p className="wellness-quote-text">“There’s no right way to feel.”</p>
+              <p className="wellness-quote-sub">Just a place to begin.</p>
+            </div>
+
+            <div className="wellness-divider" />
+
+            <div className="wellness-pillars">
+              <div className="wellness-pillar">
+                <i className="pillar-bullet" />
+                <div>
+                  <strong>Confidential &amp; Anonymous</strong>
+                  <p>Screening responses linked only to student code STU-XXXX.</p>
+                </div>
+              </div>
+              <div className="wellness-pillar">
+                <i className="pillar-bullet" />
+                <div>
+                  <strong>On-Device Privacy</strong>
+                  <p>Optional facial cues run 100% locally in your browser memory.</p>
+                </div>
+              </div>
+              <div className="wellness-pillar">
+                <i className="pillar-bullet" />
+                <div>
+                  <strong>At Your Own Pace</strong>
+                  <p>Self-paced reflection with verified campus resources.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="wellness-card-status">
+              <span className="status-dot-active" />
+              <span>Safe academic space &bull; Free &amp; confidential</span>
             </div>
           </div>
         </div>
       </section>
 
-      <hr className="editorial-divider" />
+      {/* 2. How it works */}
+      <section className="how" id="how">
+        <div className="container">
+          <div className="title">
+            <p className="eyebrow">
+              <i /> A gentler process
+            </p>
+            <h2>
+              A moment for you,
+              <br />
+              <em>in three simple steps.</em>
+            </h2>
+            <p>Haven meets you where you are—with curiosity, care, and no judgment.</p>
+          </div>
 
-      {/* 3-Step Rhythm Section */}
-      <section id="how-it-works" className="section-block">
-        <div className="section-heading-centered">
-          <p className="eyebrow terracotta-eyebrow">HOW IT WORKS</p>
-          <h2>A Thoughtful, Three-Step Rhythm</h2>
-          <p className="section-desc">
-            Designed to fit naturally into a student's busy schedule, taking only three to four unhurried minutes.
+          <div className="steps">
+            {steps.map((step) => {
+              const destination = step.getUrl(user);
+              return (
+                <Link
+                  key={step.num}
+                  to={destination}
+                  className="step-card"
+                  aria-label={`Step ${step.num}: ${step.title}. ${step.text}`}
+                >
+                  <div className="step-num">
+                    <span>{step.num}</span>
+                    <i aria-hidden="true" />
+                  </div>
+                  <h3>{step.title}</h3>
+                  <p>{step.text}</p>
+                  <div className="step-arrow" aria-hidden="true">
+                    <Arrow />
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* 3. AI-Supported Reflection / Chat Section */}
+      <section className="reflection container" id="check-in">
+        <div className="chat-wrap">
+          <div className="halo" />
+          <div className="chat glass">
+            <div className="chat-head">
+              <span>
+                <Spark />
+              </span>
+              <div>
+                <strong>Haven Companion</strong>
+                <small>Local AI Reflection Companion</small>
+              </div>
+              <div className="chat-head-status">
+                <i />
+                <small>Here with you</small>
+              </div>
+            </div>
+
+            <div className="messages">
+              <p>Take your time. What’s been taking up the most space in your mind lately?</p>
+              <p className="user">I’ve been feeling stretched thin, even when I’m getting things done.</p>
+              <p>It sounds like you’ve been carrying a lot. Would it help to explore what feels heaviest?</p>
+            </div>
+
+            <div className="composer">
+              <span>Share what’s on your mind…</span>
+              <button type="button" disabled aria-label="Send message preview">
+                <Arrow />
+              </button>
+            </div>
+            <small className="preview">Live AI companion powered by local Qwen 2.5 — ready whenever you are.</small>
+
+            <Link
+              to="/chat"
+              className="button primary"
+              style={{ width: "100%", marginTop: "14px", minHeight: "44px" }}
+            >
+              <span>Begin a Real Conversation</span>
+              <Arrow />
+            </Link>
+          </div>
+        </div>
+
+        <div className="reflection-copy">
+          <p className="eyebrow lavender">
+            <i /> AI-supported reflection
           </p>
-        </div>
-
-        <div className="grid-3 editorial-steps-grid">
-          <div className="editorial-step-card">
-            <span className="step-numeral">01</span>
-            <h3>A Quiet Space</h3>
-            <p>
-              Answer standard 9-item PHQ-9 (Depression) and 7-item GAD-7 (Anxiety) self-report inventories one gentle question at a time.
-            </p>
-          </div>
-
-          <div className="editorial-step-card">
-            <span className="step-numeral">02</span>
-            <h3>Optional Multimodal Cues</h3>
-            <p>
-              Express your feelings via text or speech, and optionally enable on-device facial cues. Analysis is 100% local—no video ever leaves your computer.
-            </p>
-          </div>
-
-          <div className="editorial-step-card">
-            <span className="step-numeral">03</span>
-            <h3>Private Insights &amp; Care</h3>
-            <p>
-              Receive an immediate plain-language summary of your wellness load, track trends across semesters, and connect with campus counselors when extra support is helpful.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <hr className="editorial-divider" />
-
-      {/* Multimodal Architecture Section */}
-      <section id="signals" className="section-block">
-        <div className="section-heading-centered">
-          <p className="eyebrow terracotta-eyebrow">BALANCED SCREENING SIGNALS</p>
-          <h2>Combining Evidence with Context</h2>
-          <p className="section-desc">
-            Rather than relying solely on a single quiz or an unexplainable AI model, Haven calculates an integrated wellness index using clinical benchmarks and transparent weights.
+          <h2>
+            Talk it through,
+            <br />
+            <em>at your own pace.</em>
+          </h2>
+          <p>
+            Sometimes the first step is finding the words. Haven offers thoughtful prompts and helps you notice what matters—without judgment.
           </p>
-        </div>
 
-        <div className="grid-3">
-          <article className="panel editorial-feature-card static">
-            <div className="feature-card-header">
-              <div className="icon-wrapper terracotta-icon">
-                <FileText size={22} aria-hidden="true" />
+          <ul>
+            <li>
+              <span>
+                <Spark />
+              </span>
+              <div>
+                <strong>Thoughtful, not clinical</strong>
+                <small>Supportive, empathetic dialogue designed for reflection, never diagnosis.</small>
               </div>
-              <span className="weight-pill">50% Primary Weight</span>
-            </div>
-            <h3>Validated Self-Report</h3>
-            <p className="muted">
-              Built upon the clinically validated PHQ-9 and GAD-7 standards. Deterministically scored, never hallucinated or altered by an LLM.
-            </p>
-          </article>
+            </li>
+            <li>
+              <span>
+                <Spark />
+              </span>
+              <div>
+                <strong>You lead the conversation</strong>
+                <small>Pause, skip, explore grounding exercises, or stop whenever you need.</small>
+              </div>
+            </li>
+            <li>
+              <span>
+                <Spark />
+              </span>
+              <div>
+                <strong>100% On-Device AI</strong>
+                <small>Runs privately on your machine using Ollama with zero commercial cloud logging.</small>
+              </div>
+            </li>
+          </ul>
 
-          <article className="panel editorial-feature-card static">
-            <div className="feature-card-header">
-              <div className="icon-wrapper terracotta-icon">
-                <MessageSquare size={22} aria-hidden="true" />
-              </div>
-              <span className="weight-pill">30% Contextual Weight</span>
-            </div>
-            <h3>Conversational Reflections</h3>
-            <p className="muted">
-              Optional open reflections scored via Hugging Face sentiment analysis and contextual lexicons, providing nuanced emotional context.
-            </p>
-          </article>
-
-          <article className="panel editorial-feature-card static">
-            <div className="feature-card-header">
-              <div className="icon-wrapper terracotta-icon">
-                <Camera size={22} aria-hidden="true" />
-              </div>
-              <span className="weight-pill">20% Advisory Weight</span>
-            </div>
-            <h3>On-Device Facial Cues</h3>
-            <p className="muted">
-              Optional local expression estimation running MediaPipe WebAssembly. Supplementary signal only—cannot independently flag elevated risk.
-            </p>
-          </article>
+          <Link to="/chat" className="button glass">
+            <span>Open AI Companion</span>
+            <Arrow />
+          </Link>
         </div>
       </section>
 
-      <hr className="editorial-divider" />
-
-      {/* Privacy Guarantee Section */}
-      <section className="section-block privacy-feature-section">
-        <div className="editorial-split-layout">
-          <div className="split-text">
-            <p className="eyebrow terracotta-eyebrow">CONFIDENTIALITY &amp; ETHICS</p>
-            <h2>Privacy Protected at Every Layer</h2>
-            <p className="lede-sm">
-              We know that mental health check-ins require absolute trust. Haven is designed with zero-knowledge architectural principles:
+      {/* 4. Privacy & Consent */}
+      <section className="privacy" id="privacy">
+        <div className="container privacy-grid">
+          <div>
+            <p className="eyebrow light">
+              <i /> Privacy &amp; consent
             </p>
+            <h2>
+              Your inner world
+              <br />
+              <em>belongs to you.</em>
+            </h2>
+          </div>
 
-            <ul className="safety-points-editorial">
-              <li>
-                <CheckCircle2 size={18} className="text-terracotta flex-shrink-0" aria-hidden="true" />
-                <div>
-                  <strong>Zero Camera Transmission:</strong> Video analysis operates exclusively in browser WebAssembly memory. Zero frames are uploaded.
-                </div>
-              </li>
-              <li>
-                <CheckCircle2 size={18} className="text-terracotta flex-shrink-0" aria-hidden="true" />
-                <div>
-                  <strong>Anonymous Student Aliases:</strong> When counselor triage is necessary, alerts display pseudo-identifiers (e.g. <code>STU-4C91</code>), safeguarding your academic identity.
-                </div>
-              </li>
-              <li>
-                <CheckCircle2 size={18} className="text-terracotta flex-shrink-0" aria-hidden="true" />
-                <div>
-                  <strong>Complete Sensor Control:</strong> Camera and microphone are strictly opt-in. You can disable them at any second with immediate hardware track release.
-                </div>
-              </li>
-            </ul>
+          <div className="privacy-copy">
+            <p>
+              Trust begins with clarity. Haven is designed to give you meaningful control over your experience and your information.
+            </p>
+            <dl>
+              <div>
+                <dt>Clear consent</dt>
+                <dd>Nothing optional happens without your explicit say.</dd>
+              </div>
+              <div>
+                <dt>Camera off by default</dt>
+                <dd>
+                  <i className="camera-dot" /> Off &mdash; enable only if you choose for on-device cues.
+                </dd>
+              </div>
+              <div>
+                <dt>On-device processing</dt>
+                <dd>Facial cues run 100% locally via WebAssembly. No video or photos are saved or uploaded.</dd>
+              </div>
+              <div>
+                <dt>Non-diagnostic</dt>
+                <dd>Insights support self-reflection and campus resource discovery, not medical conclusions.</dd>
+              </div>
+            </dl>
+            <Link to="/privacy">
+              <span>Read our privacy approach</span>
+              <Arrow />
+            </Link>
+          </div>
+        </div>
+      </section>
 
-            <div className="mt-3">
-              <Link to="/privacy" className="btn btn-secondary">
-                Read Full Data Governance Policy
+      {/* 5. Resources */}
+      <section className="resources container" id="resources">
+        <div className="title">
+          <p className="eyebrow">
+            <i /> Small ways forward
+          </p>
+          <h2>
+            Support for the moment
+            <br />
+            <em>you’re in.</em>
+          </h2>
+        </div>
+
+        <div className="resource-grid">
+          <article className="featured">
+            <span className="featured-tag">Guided practice &bull; 3 min</span>
+            <div className="featured-body">
+              <h3>A soft reset for an overwhelmed mind</h3>
+              <p>Come back to the present with a quiet grounding exercise you can do anywhere, anytime.</p>
+            </div>
+            <Link to="/chat" className="featured-action">
+              <span>Try the practice</span>
+              <Arrow />
+            </Link>
+          </article>
+          <article>
+            <span>01</span>
+            <div>
+              <small>Reflection</small>
+              <h3>When your thoughts feel too loud</h3>
+              <Link to="/chat">
+                <span>Explore prompts</span>
+                <Arrow />
               </Link>
             </div>
-          </div>
-
-          <div className="split-aside">
-            <div className="panel blush-callout-card static">
-              <div className="flex-row items-center gap-2 mb-2">
-                <Lock size={18} className="text-terracotta" aria-hidden="true" />
-                <h3 className="text-terracotta">Our Data Promise</h3>
-              </div>
-              <p className="muted-sm">
-                No advertising trackers, no selling of student data, and no automated diagnostic labels. Haven is built to support students, not profile them.
-              </p>
-              <div className="divider-subtle my-3" />
-              <div className="small-security-stat">
-                <strong>PBKDF2-SHA256</strong> password hashing &bull; <strong>JWT</strong> session tokens
-              </div>
+          </article>
+          <article>
+            <span>02</span>
+            <div>
+              <small>Understanding</small>
+              <h3>Naming what you need today</h3>
+              <Link to={startCheckInUrl}>
+                <span>Check in</span>
+                <Arrow />
+              </Link>
             </div>
-          </div>
+          </article>
         </div>
       </section>
 
-      <hr className="editorial-divider" />
-
-      {/* Wellness & 24/7 Crisis Support Section */}
-      <section id="resources" className="section-block">
-        <div className="section-heading-centered">
-          <p className="eyebrow terracotta-eyebrow">CAMPUS &amp; NATIONAL SUPPORT</p>
-          <h2>Help Is Always Within Reach</h2>
-          <p className="section-desc">
-            You do not need to complete a check-in to access care. If you or someone you know is struggling, compassionate humans are available 24 hours a day.
-          </p>
-        </div>
-
-        <div className="grid-3">
-          <div className="panel editorial-resource-card featured static">
-            <span className="resource-tag terracotta-tag">National 24/7 Helpline</span>
-            <h3>Tele-MANAS</h3>
-            <p className="resource-contact">14416</p>
-            <p className="resource-alt-contact">Toll-Free: 1800-891-4416</p>
-            <p className="resource-detail">
-              Government of India comprehensive mental health counseling service. Free, confidential, and available in over 20 languages.
+      {/* 6. FAQ Section */}
+      <section className="faq" id="faq">
+        <div className="container faq-grid">
+          <div>
+            <p className="eyebrow">
+              <i /> Questions, answered
             </p>
+            <h2>
+              A little more
+              <br />
+              <em>clarity.</em>
+            </h2>
+            <p>Can’t find what you need? We’re here to help you feel supported and informed.</p>
           </div>
 
-          <div className="panel editorial-resource-card static">
-            <span className="resource-tag">Rehabilitation &amp; Hope</span>
-            <h3>KIRAN Helpline</h3>
-            <p className="resource-contact">1800-599-0019</p>
-            <p className="resource-alt-contact">Dept. of Empowerment of Persons with Disabilities</p>
-            <p className="resource-detail">
-              Trained mental health professionals offering psychological first aid, panic de-escalation, and referral support.
-            </p>
-          </div>
-
-          <div className="panel editorial-resource-card static">
-            <span className="resource-tag">Immediate Emergency</span>
-            <h3>National Emergency</h3>
-            <p className="resource-contact">112</p>
-            <p className="resource-alt-contact">Single Emergency Dispatch</p>
-            <p className="resource-detail">
-              Direct connection to medical emergency teams, police, and safety first-responders anywhere in India.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <hr className="editorial-divider" />
-
-      {/* Frequently Asked Questions */}
-      <section className="section-block">
-        <div className="section-heading-centered">
-          <p className="eyebrow terracotta-eyebrow">COMMON QUESTIONS</p>
-          <h2>Everything You Need to Know</h2>
-        </div>
-
-        <div className="faq-editorial-list">
-          {faqs.map((faq, index) => {
-            const isOpen = openFaq === index;
-            return (
-              <div key={faq.q} className="faq-editorial-item">
+          <div className="faq-list">
+            {faqs.map(([q, a], i) => (
+              <div className={`faq-item ${openFaq === i ? "active" : ""}`} key={q}>
                 <button
                   type="button"
-                  className="faq-question-btn"
-                  onClick={() => setOpenFaq(isOpen ? null : index)}
-                  aria-expanded={isOpen}
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  aria-expanded={openFaq === i}
                 >
-                  <span className="faq-question-text">{faq.q}</span>
-                  <ChevronDown
-                    size={18}
-                    className={`faq-icon ${isOpen ? "rotated" : ""}`}
-                    aria-hidden="true"
-                  />
+                  <span>{q}</span>
+                  <i>{openFaq === i ? "−" : "+"}</i>
                 </button>
-                {isOpen && (
-                  <div className="faq-answer-content">
-                    <p>{faq.a}</p>
-                  </div>
-                )}
+                <div>
+                  <p>{a}</p>
+                </div>
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Final Warm Editorial Invitation Banner */}
-      <section className="cta-invitation-section">
-        <div className="cta-invitation-box">
-          <p className="eyebrow terracotta-eyebrow">A MOMENT FOR YOURSELF</p>
-          <h2 className="cta-invitation-heading">Make a habit of gentle reflection.</h2>
-          <p className="cta-invitation-desc">
-            Your responses remain private, your pace is entirely your own, and help is always within reach.
-          </p>
-          <div className="row justify-center mt-3 gap-2">
-            <Link className="btn btn-primary btn-lg" to={startTo}>
-              Begin Your Check-in
-            </Link>
-            <Link className="btn btn-secondary" to="/login">
-              Explore Demo Accounts
-            </Link>
-          </div>
-        </div>
+      {/* 7. Closing Section */}
+      <section className="closing">
+        <p className="eyebrow light">
+          <i /> Begin when you’re ready
+        </p>
+        <h2>
+          You don’t have to have
+          <br />
+          <em>it all figured out.</em>
+        </h2>
+        <p>Take a quiet moment to check in with yourself.</p>
+        <Link className="button glass" to={startCheckInUrl} style={{ marginTop: "24px" }}>
+          <span>Start your check-in</span>
+          <Arrow />
+        </Link>
       </section>
     </div>
   );

@@ -4,8 +4,10 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./auth/AuthContext";
 import { Layout } from "./components/Layout";
 import { Loading } from "./components/Ui";
+import { ScrollToTop } from "./components/ScrollToTop";
 import { AlertDetail } from "./pages/AlertDetail";
 import { AuthPage } from "./pages/Auth";
+import { Chat } from "./pages/Chat";
 import { CounselorHome } from "./pages/Counselor";
 import { Landing } from "./pages/Landing";
 import { Privacy } from "./pages/Privacy";
@@ -40,12 +42,15 @@ function Guard({ role, children }: { role: "student" | "counselor"; children: Re
 
 export function App() {
   return (
-    <Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<AuthPage mode="login" />} />
         <Route path="/register" element={<AuthPage mode="register" />} />
         <Route path="/privacy" element={<Privacy />} />
+        <Route path="/chat" element={<Chat />} />
         <Route
           path="/app"
           element={
@@ -89,5 +94,6 @@ export function App() {
         <Route path="*" element={<p>Page not found. Return to the home page.</p>} />
       </Route>
     </Routes>
+    </>
   );
 }

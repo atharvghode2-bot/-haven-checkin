@@ -1,14 +1,19 @@
-// App shell with refined editorial navigation, helpline notice, and deep rust-colored footer.
+// App shell with floating glassmorphism navigation, crisis announcement bar, and deep burgundy footer.
+import { useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
-import { ArrowUpRight, HeartHandshake, PhoneCall, Shield, Sparkles, User as UserIcon } from "lucide-react";
+import { PhoneCall, Shield, User as UserIcon } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
+import { Arrow, Leaf } from "./Ui";
 
 export function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const closeMobile = () => setMobileMenuOpen(false);
 
   return (
-    <div className="shell">
+    <div className="site">
       <a className="skip-link" href="#main">
         Skip to content
       </a>
@@ -17,50 +22,98 @@ export function Layout() {
       <div className="top-helpline-bar" role="region" aria-label="Crisis Support Announcement">
         <div className="top-helpline-content">
           <span className="helpline-badge">
-            <PhoneCall size={13} aria-hidden="true" />
-            24/7 Crisis Support:
+            <PhoneCall size={12} aria-hidden="true" />
+            24/7 Verified Support:
           </span>
           <span className="helpline-text">
-            Tele-MANAS (India): <strong>14416</strong> &bull; Emergency: <strong>112</strong> &bull; KIRAN: <strong>1800-599-0019</strong>
+            Tele-MANAS: <a href="tel:14416">14416</a> &bull; Emergency: <a href="tel:112">112</a> &bull; KIRAN: <a href="tel:18005990019">1800-599-0019</a>
           </span>
         </div>
       </div>
 
-      <header className="nav">
-        <div className="nav-container">
-          <Link className="brand" to="/" aria-label="Haven Check-in Home">
-            <HeartHandshake size={22} aria-hidden="true" className="brand-icon" />
-            <span className="brand-wordmark">Haven Check-in</span>
+      {/* Floating Glassmorphism Header */}
+      <header className="site-header">
+        <nav className="nav container" aria-label="Main navigation">
+          <Link
+            className="brand"
+            to="/"
+            aria-label="Haven Check-in Home"
+            onClick={() => {
+              closeMobile();
+              if (window.location.pathname === "/") {
+                window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+              }
+            }}
+          >
+            <Leaf />
+            <span>haven</span>
           </Link>
 
-          <nav className="nav-links" aria-label="Primary">
-            <NavLink to="/" end>
+          {/* Links drawer for desktop & mobile */}
+          <div className={`links ${mobileMenuOpen ? "open" : ""}`}>
+            <NavLink
+              to="/"
+              end
+              onClick={() => {
+                closeMobile();
+                if (window.location.pathname === "/") {
+                  window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+                }
+              }}
+            >
               Home
             </NavLink>
-            <a href="/#how-it-works">How It Works</a>
-            <a href="/#resources">Wellness Resources</a>
-            {user?.role === "student" && <NavLink to="/app">Dashboard</NavLink>}
-            {user?.role === "counselor" && <NavLink to="/counselor">Counselor Portal</NavLink>}
-            <NavLink to="/privacy">Privacy & Safety</NavLink>
+            <a href="/#how" onClick={closeMobile}>
+              How it works
+            </a>
+            <NavLink to="/chat" onClick={closeMobile}>
+              AI Companion
+            </NavLink>
+            <a href="/#resources" onClick={closeMobile}>
+              Resources
+            </a>
+            <NavLink to="/privacy" onClick={closeMobile}>
+              Privacy
+            </NavLink>
+            {user?.role === "student" && (
+              <NavLink to="/app" onClick={closeMobile}>
+                Dashboard
+              </NavLink>
+            )}
+            {user?.role === "counselor" && (
+              <NavLink to="/counselor" onClick={closeMobile}>
+                Counselor Portal
+              </NavLink>
+            )}
+          </div>
 
+          <div className="nav-actions">
             {user ? (
-              <div className="user-nav-group">
-                <span className="user-badge" title={`Signed in as ${user.name}`}>
+              <>
+                <span className="user-nav-badge" title={`Signed in as ${user.name}`}>
                   {user.role === "student" ? (
                     <>
-                      <UserIcon size={13} aria-hidden="true" />
-                      <span>{user.anonymous_code || user.name}</span>
+                      <UserIcon size={12} aria-hidden="true" />
+                      <span>{user.anonymous_code || user.name.split(" ")[0]}</span>
                     </>
                   ) : (
                     <>
-                      <Shield size={13} aria-hidden="true" />
-                      <span>Counselor ({user.name.split(" ")[0]})</span>
+                      <Shield size={12} aria-hidden="true" />
+                      <span>Counselor</span>
                     </>
                   )}
                 </span>
                 <button
-                  className="linkish signout-btn"
                   type="button"
+                  className="linkish"
+                  style={{
+                    background: "none",
+                    border: 0,
+                    color: "var(--muted)",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    padding: "6px 8px",
+                  }}
                   onClick={() => {
                     logout();
                     navigate("/");
@@ -69,87 +122,110 @@ export function Layout() {
                   Sign out
                 </button>
                 {user.role === "student" && (
-                  <Link to="/check-in" className="btn btn-primary nav-cta">
-                    Take Check-in
+                  <Link to="/check-in" className="nav-cta" onClick={closeMobile}>
+                    Take Check-in <Arrow />
                   </Link>
                 )}
-              </div>
+              </>
             ) : (
-              <div className="auth-nav-group">
-                <NavLink to="/login" className="nav-login-link">
-                  Sign in
+              <>
+                <NavLink
+                  to="/login"
+                  style={{
+                    color: "var(--muted)",
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    marginRight: "4px",
+                  }}
+                  className="hide-mobile"
+                >
+                  Sign In
                 </NavLink>
-                <Link to="/check-in" className="btn btn-primary nav-cta">
-                  <span>Start Check-in</span>
+                <Link to="/check-in" className="nav-cta" onClick={closeMobile}>
+                  Start your check-in <Arrow />
                 </Link>
-              </div>
+              </>
             )}
-          </nav>
-        </div>
+
+            {/* Mobile hamburger button with animated lines */}
+            <button
+              className="menu"
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle navigation"
+              aria-expanded={mobileMenuOpen}
+            >
+              <i />
+              <i />
+            </button>
+          </div>
+        </nav>
       </header>
 
-      <main id="main" className="main">
+      {/* Main Content Viewport */}
+      <main id="main">
         <Outlet />
       </main>
 
-      {/* Rich Terracotta & Rust Footer */}
-      <footer className="footer" role="contentinfo">
-        <div className="footer-inner">
-          <div className="footer-col brand-col">
-            <div className="footer-brand">
-              <Sparkles size={18} className="footer-brand-icon" aria-hidden="true" />
-              <span className="footer-brand-text">Haven Check-in</span>
-            </div>
-            <p className="footer-tagline">
-              A gentle, confidential mental wellness screening aid for college students. Made to give you space to check in with how you feel.
+      {/* Deep Burgundy 4-Column Footer */}
+      <footer role="contentinfo">
+        <div className="container footer-grid">
+          <div>
+            <Link className="brand" to="/" style={{ color: "#ffffff" }}>
+              <Leaf />
+              <span>haven</span>
+            </Link>
+            <p style={{ marginTop: "14px" }}>
+              A gentle space to pause, reflect, and understand how you feel at your own pace.
             </p>
-            <p className="footer-disclaimer-note">
-              <strong>Academic & Screening Prototype:</strong> Haven is not a diagnostic tool and does not provide clinical care or emergency treatment.
+            <p style={{ fontSize: "11px", color: "#bda39b" }}>
+              Haven Check-in is an academic wellness screening aid. It is strictly non-diagnostic and cannot replace licensed clinical care or emergency services.
             </p>
           </div>
 
-          <div className="footer-col links-col">
-            <h4 className="footer-heading">Navigation</h4>
-            <ul className="footer-links-list">
-              <li><Link to="/">Home</Link></li>
-              <li><a href="/#how-it-works">How It Works</a></li>
-              <li><a href="/#resources">Crisis & Wellness Resources</a></li>
-              <li><Link to="/check-in">Take a Check-in</Link></li>
-              <li><Link to="/login">Sign In / Demo Accounts</Link></li>
-              <li><Link to="/privacy">Data Governance & Privacy</Link></li>
-            </ul>
+          <div>
+            <strong>Explore</strong>
+            <Link to="/">Home</Link>
+            <a href="/#how">How it works</a>
+            <Link to="/chat">AI Companion</Link>
+            <a href="/#resources">Resources</a>
+            <a href="/#faq">FAQ</a>
           </div>
 
-          <div className="footer-col crisis-col">
-            <h4 className="footer-heading">Immediate Support</h4>
-            <p className="footer-support-intro">
-              If you or someone you care about is experiencing significant distress, free support is available 24/7:
-            </p>
-            <div className="footer-helpline-card">
-              <span className="footer-helpline-title">Tele-MANAS (Govt. of India)</span>
-              <a href="tel:14416" className="footer-helpline-phone">
-                14416 <ArrowUpRight size={14} aria-hidden="true" />
+          <div>
+            <strong>Trust &amp; Safety</strong>
+            <Link to="/privacy">Privacy Policy</Link>
+            <Link to="/privacy#consent">Informed Consent</Link>
+            <Link to="/privacy#camera">Camera Off by Default</Link>
+            <Link to="/login">Demo Accounts</Link>
+          </div>
+
+          <div>
+            <strong>24/7 Crisis Support</strong>
+            <div className="footer-helpline-box">
+              <span>National Tele-MANAS (Govt of India):</span>
+              <a href="tel:14416">
+                14416 <Arrow />
               </a>
-              <span className="footer-helpline-meta">Toll-Free, Confidential, Multilingual</span>
             </div>
-            <div className="footer-helpline-card mt-2">
-              <span className="footer-helpline-title">National Emergency Services</span>
-              <a href="tel:112" className="footer-helpline-phone">
-                112 <ArrowUpRight size={14} aria-hidden="true" />
+            <div className="footer-helpline-box" style={{ marginTop: "8px" }}>
+              <span>National Emergency Number:</span>
+              <a href="tel:112">
+                112 <Arrow />
               </a>
-              <span className="footer-helpline-meta">Immediate Safety & Medical Dispatch</span>
+            </div>
+            <div className="footer-helpline-box" style={{ marginTop: "8px" }}>
+              <span>KIRAN Mental Health Line:</span>
+              <a href="tel:18005990019">
+                1800-599-0019 <Arrow />
+              </a>
             </div>
           </div>
         </div>
 
-        <div className="footer-bottom-bar">
-          <div className="footer-bottom-inner">
-            <p>&copy; {new Date().getFullYear()} Haven Check-in. Designed for student mental wellness.</p>
-            <div className="footer-bottom-links">
-              <Link to="/privacy">Privacy Policy</Link>
-              <a href="#main">Back to top &uarr;</a>
-            </div>
-          </div>
+        <div className="container copyright">
+          <span>&copy; {new Date().getFullYear()} Haven Check-in &bull; Private Academic Screening Prototype</span>
+          <span>Made with care for student well-being.</span>
         </div>
       </footer>
     </div>

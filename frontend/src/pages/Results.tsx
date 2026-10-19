@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowRight,
+  Bot,
   Camera,
   CheckCircle2,
   FileText,
@@ -304,17 +305,41 @@ export function Results() {
         <p className="muted-sm mt-1">{result.disclaimer}</p>
       </div>
 
+      {/* AI Emotional Insights Companion Link Section */}
+      <section className="panel static mt-4">
+        <div className="flex-row items-center justify-between flex-wrap gap-3">
+          <div>
+            <h3 className="mb-1 flex-row items-center gap-2">
+              <Sparkles size={18} className="text-accent" aria-hidden="true" />
+              Conversational Emotional Insights &amp; Reflection
+            </h3>
+            <p className="muted-sm mb-0">
+              Chat with Haven AI Companion to evaluate message sentiment and optional camera cues, generating a private Combined Emotional Insights Report.
+            </p>
+          </div>
+          <Link className="btn btn-secondary" to="/chat">
+            <Bot size={16} aria-hidden="true" />
+            Open AI Companion
+          </Link>
+        </div>
+      </section>
+
       {/* Actions */}
       <div className="results-actions-bar mt-4">
         <Link className="btn btn-primary" to="/app">
           Return to Student Dashboard
           <ArrowRight size={16} aria-hidden="true" />
         </Link>
+        <Link className="btn btn-secondary" to="/chat">
+          <Bot size={16} aria-hidden="true" />
+          Reflect With AI Companion
+        </Link>
         <button className="btn btn-secondary" type="button" onClick={() => window.print()}>
           <Printer size={16} aria-hidden="true" />
           Print / Save Summary
         </button>
       </div>
+
     </div>
   );
 }

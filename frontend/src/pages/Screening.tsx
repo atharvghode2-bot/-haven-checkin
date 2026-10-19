@@ -1,11 +1,12 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Bot,
   Camera,
   CameraOff,
   Check,
+  ExternalLink,
   Mic,
   MicOff,
   PhoneCall,
@@ -70,11 +71,16 @@ export function Screening() {
   const sampler = useRef<FaceSamplerHandle | null>(null);
   const rec = useRef<ReturnType<typeof createRecognizer>>(null);
   const finishKey = useRef(generateSafeId());
-  const chatBottomRef = useRef<HTMLDivElement>(null);
+  const chatStreamRef = useRef<HTMLDivElement>(null);
 
-  // Auto scroll chat to bottom when messages update
+  // Auto scroll chat stream container when messages update (without jumping the page)
   useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = chatStreamRef.current;
+    if (!el) return;
+    const isNearBottom = el.scrollHeight - (el.scrollTop + el.clientHeight) <= 120;
+    if (isNearBottom) {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    }
   }, [messages, isTyping]);
 
   // Keyboard shortcut support (1, 2, 3, 4 for Likert options)
@@ -393,7 +399,7 @@ export function Screening() {
       {/* Top Header & Progress */}
       <div className="screening-header-bar">
         <div>
-          <p className="eyebrow">
+          <p className="eyebrow terracotta-eyebrow">
             <Sparkles size={14} className="inline-icon" aria-hidden="true" />
             Confidential Screening Chatbot
           </p>
@@ -497,7 +503,7 @@ export function Screening() {
       {/* Balanced 2-Column Layout: Chat on Left, Companion Sidebar on Right */}
       <div className="screening-grid">
         <section className="panel chat-panel">
-          <div className="chat-stream" aria-live="polite">
+          <div ref={chatStreamRef} className="chat-stream" aria-live="polite">
             {messages.map((msg) => (
               <div key={msg.id} className={`chat-message-row ${msg.who}`}>
                 <div className="avatar-icon" aria-hidden="true">
@@ -523,7 +529,6 @@ export function Screening() {
                 </div>
               </div>
             )}
-            <div ref={chatBottomRef} />
           </div>
 
           {error && <p className="error my-2">{error}</p>}
@@ -666,6 +671,18 @@ export function Screening() {
             <div>
               <strong>Emergency Crisis Line:</strong>
               <p className="muted-xs">Tele-MANAS: 14416 &bull; Emergency: 112</p>
+            </div>
+          </div>
+
+          {/* AI Wellness Companion Sidebar Card */}
+          <div className="sidebar-emergency-card mt-3">
+            <Bot size={16} className="text-terracotta" aria-hidden="true" />
+            <div>
+              <strong>Haven AI Companion</strong>
+              <p className="muted-xs mb-1">Need to talk or unwind right now? Private local AI support.</p>
+              <Link to="/chat" className="linkish muted-xs" style={{ color: "var(--color-terracotta)", fontWeight: 600 }}>
+                Open Wellness Chat &rarr;
+              </Link>
             </div>
           </div>
         </aside>

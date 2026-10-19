@@ -1,4 +1,4 @@
-# Screening session lifecycle: start, answer, finish.
+import asyncio
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from ..deps import require_role
@@ -133,10 +133,34 @@ async def answer_item(session_id: str, body: AnswerIn, user: dict = Depends(requ
     
     done = next_index >= len(items)
     next_item = None if done else serialize_item(items[next_index], next_index, len(items))
+
+    # Provide empathetic reflection via local Ollama if student shared open text
+    acknowledgement = FEEDBACK_MESSAGES.get(current["id"], "Thank you for sharing.")
+    if current["instrument"] == "open" and body.text and body.text.strip():
+        try:
+            from ..chatbot.service import get_chatbot_service
+            service = get_chatbot_service()
+            prompt = (
+                f"A university student just shared this reflection in their wellness check-in: \"{body.text.strip()[:300]}\". "
+                "Write a warm, supportive 1-2 sentence peer acknowledgement validating their thoughts. "
+                "Do not diagnose, lecture, or advise medication. Keep it under 30 words."
+            )
+            reply = await asyncio.wait_for(
+                service.llm.chat([
+                    {"role": "system", "content": "You are Haven, a compassionate student wellness companion."},
+                    {"role": "user", "content": prompt}
+                ], max_tokens=60),
+                timeout=3.5,
+            )
+            if reply and len(reply.strip()) > 5:
+                acknowledgement = reply.strip()
+        except Exception:
+            pass
+
     return {
         "done": done,
         "item": next_item,
-        "acknowledgement": FEEDBACK_MESSAGES.get(current["id"], "Thank you for sharing."),
+        "acknowledgement": acknowledgement,
         "progress": {"current": next_index, "total": len(items)},
     }
 
