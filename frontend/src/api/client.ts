@@ -1,9 +1,51 @@
 // API client for the Haven Check-in FastAPI backend.
-const API = (
-  import.meta.env.VITE_API_BASE_URL ||
-  import.meta.env.VITE_API_URL ||
-  "http://localhost:8000"
-).replace(/\/+$/, "");
+export function getApiBaseUrl(): string {
+  // 1. Explicit build-time Vite environment variable
+  const buildTime = (
+    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.VITE_API_URL ||
+    ""
+  ).trim();
+
+  // If explicit non-localhost URL is provided at build-time, use it directly
+  if (buildTime && !buildTime.includes("localhost:8000") && !buildTime.includes("127.0.0.1:8000")) {
+    return buildTime.replace(/\/+$/, "");
+  }
+
+  // 2. Runtime browser checks
+  if (typeof window !== "undefined") {
+    // Check runtime window override or localStorage
+    const winUrl = (window as unknown as { __HAVEN_API_BASE_URL__?: string }).__HAVEN_API_BASE_URL__;
+    if (winUrl && typeof winUrl === "string" && winUrl.trim()) {
+      return winUrl.trim().replace(/\/+$/, "");
+    }
+    try {
+      const stored = localStorage.getItem("haven_api_base_url");
+      if (stored && typeof stored === "string" && stored.trim()) {
+        return stored.trim().replace(/\/+$/, "");
+      }
+    } catch {
+      // localStorage may be disabled in some iframe contexts
+    }
+
+    // 3. Auto-pair with Render backend if running on *.onrender.com
+    const hostname = window.location.hostname;
+    if (hostname.endsWith(".onrender.com")) {
+      if (hostname.includes("-frontend")) {
+        return `https://${hostname.replace("-frontend", "-backend")}`;
+      }
+      if (hostname.includes("frontend")) {
+        return `https://${hostname.replace("frontend", "backend")}`;
+      }
+      return "https://haven-checkin-backend.onrender.com";
+    }
+  }
+
+  // 4. Default for local development
+  return (buildTime || "http://localhost:8000").replace(/\/+$/, "");
+}
+
+const API = getApiBaseUrl();
 
 export class ApiError extends Error {
   status: number;

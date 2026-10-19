@@ -9,6 +9,7 @@ import { AlertDetail } from "./pages/AlertDetail";
 import { AuthPage } from "./pages/Auth";
 import { Chat } from "./pages/Chat";
 import { CounselorHome } from "./pages/Counselor";
+import { Health } from "./pages/Health";
 import { Landing } from "./pages/Landing";
 import { Privacy } from "./pages/Privacy";
 import { Results } from "./pages/Results";
@@ -50,6 +51,7 @@ export function App() {
         <Route path="/login" element={<AuthPage mode="login" />} />
         <Route path="/register" element={<AuthPage mode="register" />} />
         <Route path="/privacy" element={<Privacy />} />
+        <Route path="/health" element={<Health />} />
         <Route path="/chat" element={<Chat />} />
         <Route
           path="/app"

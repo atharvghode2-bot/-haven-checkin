@@ -37,6 +37,21 @@ app.include_router(alerts.router)
 app.include_router(chat.router)
 
 
+@app.get("/")
+async def root():
+    return {
+        "ok": True,
+        "service": "haven-checkin-backend",
+        "health": "/health",
+        "docs": "/docs",
+        "version": "1.0.0",
+    }
+
+
 @app.get("/health")
+@app.get("/health/")
+@app.get("/api/health")
+@app.get("/api/health/")
+@app.head("/health")
 async def health():
     return {"ok": True, "service": "haven-checkin"}
