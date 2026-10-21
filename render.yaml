@@ -15,7 +15,7 @@ services:
     healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.9
+        value: 3.12.8
       - key: USE_MEMORY_DB
         value: "true"
       - key: SEED_DEMO_DATA
