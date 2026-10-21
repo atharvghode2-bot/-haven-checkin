@@ -26,15 +26,13 @@ services:
         value: "720"
       - key: CORS_ORIGINS
         value: "https://haven-checkin-frontend.onrender.com,http://localhost:5173"
-      # Hosted Open-Source AI Inference (Qwen 2.5 via OpenRouter free tier)
-      - key: LLM_PROVIDER
-        value: "openrouter"
-      - key: LLM_BASE_URL
-        value: "https://openrouter.ai/api/v1"
-      - key: LLM_MODEL
-        value: "qwen/qwen-2.5-7b-instruct:free"
-      # Provide your free OpenRouter API key in the Render dashboard
-      - key: LLM_API_KEY
+      # Hosted Open-Source AI Inference (GroqCloud production integration)
+      - key: AI_PROVIDER
+        value: "groq"
+      - key: GROQ_MODEL
+        value: "openai/gpt-oss-20b"
+      # Provide your Groq API key in the Render dashboard under Environment
+      - key: GROQ_API_KEY
         sync: false
 
   # ---------------------------------------------------------------------------

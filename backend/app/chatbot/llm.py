@@ -13,6 +13,22 @@ import httpx
 
 from ..config import get_settings
 
+try:
+    from openai import (
+        AsyncOpenAI,
+        APIConnectionError,
+        APITimeoutError,
+        AuthenticationError,
+        BadRequestError,
+        NotFoundError,
+        RateLimitError,
+        APIStatusError,
+        OpenAIError,
+    )
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+
 log = logging.getLogger("haven.chatbot.llm")
 
 
@@ -381,5 +397,280 @@ class OpenAICompatibleProvider(BaseLLMProvider):
             raise
         except Exception as exc:
             log.error("Unexpected error during hosted LLM inference: %s", exc)
+            raise LLMError("An unexpected error occurred during AI inference.", status_code=500) from None
+
+
+class GroqProvider(BaseLLMProvider):
+    """GroqCloud inference runtime provider using the OpenAI Python SDK.
+
+    Connects to Groq's OpenAI-compatible endpoint: https://api.groq.com/openai/v1
+    Preferred model: openai/gpt-oss-20b (if supported by the account), with automatic fallback
+    to supported Groq production models (llama-3.3-70b-versatile, llama-3.1-8b-instant).
+    """
+
+    DEFAULT_BASE_URL = "https://api.groq.com/openai/v1"
+    PREFERRED_MODEL = "openai/gpt-oss-20b"
+    FALLBACK_MODELS = ("llama-3.3-70b-versatile", "llama-3.1-8b-instant")
+
+    def __init__(
+        self,
+        api_key: str | None = None,
+        model: str | None = None,
+        base_url: str | None = None,
+        timeout: float | None = None,
+    ) -> None:
+        if not OPENAI_AVAILABLE:
+            raise RuntimeError(
+                "The 'openai' Python package is required for GroqProvider. "
+                "Please run 'pip install openai' or install from backend/requirements.txt."
+            )
+        settings = get_settings()
+        self._api_key = (api_key or settings.groq_api_key or settings.llm_api_key or "").strip()
+        self._configured_model = (
+            model or settings.groq_model or settings.llm_model or self.PREFERRED_MODEL
+        ).strip()
+        self._model = self._configured_model
+        self._base_url = (
+            base_url or settings.groq_base_url or settings.llm_base_url or self.DEFAULT_BASE_URL
+        ).rstrip("/")
+        self._timeout = timeout or settings.ollama_timeout_seconds or 30.0
+        self._account_models: list[str] = []
+        self._model_verified = False
+
+        self._client = AsyncOpenAI(
+            api_key=self._api_key if self._api_key else "missing-groq-key",
+            base_url=self._base_url,
+            timeout=self._timeout,
+        )
+
+    @property
+    def provider_name(self) -> str:
+        return "groq"
+
+    @property
+    def model_name(self) -> str:
+        return self._model
+
+    def _resolve_model_against_account(self, available_models: list[str]) -> str:
+        """Resolve model name, defaulting to openai/gpt-oss-20b only if supported by the account."""
+        self._account_models = available_models
+
+        if not available_models:
+            return self._model
+
+        # If configured model is in the account's available models, use it
+        if self._model in available_models:
+            self._model_verified = True
+            return self._model
+
+        # If configured model was the preferred default (openai/gpt-oss-20b) and not in the account,
+        # resolve to the best supported production fallback on Groq
+        if self._model == self.PREFERRED_MODEL:
+            for fallback in self.FALLBACK_MODELS:
+                if fallback in available_models:
+                    log.info(
+                        "Model '%s' is not enabled on this Groq account; resolved to '%s'",
+                        self._model,
+                        fallback,
+                    )
+                    self._model = fallback
+                    self._model_verified = True
+                    return self._model
+
+        # If user specified another model not in list, check if any fallback matches
+        for fallback in self.FALLBACK_MODELS:
+            if fallback in available_models:
+                log.info(
+                    "Configured model '%s' not found on account; falling back to '%s'",
+                    self._model,
+                    fallback,
+                )
+                self._model = fallback
+                self._model_verified = True
+                return self._model
+
+        # Fall back to first available model from account
+        if available_models:
+            self._model = available_models[0]
+            self._model_verified = True
+            return self._model
+
+        return self._model
+
+    async def check_health(self) -> dict[str, Any]:
+        """Verify Groq connectivity, authentication, and model availability without exposing secrets."""
+        if not self._api_key:
+            return {
+                "available": False,
+                "provider": self.provider_name,
+                "model": self._model,
+                "installed_models": [],
+                "message": (
+                    "Groq AI provider is selected, but GROQ_API_KEY is not configured in backend environment variables. "
+                    "Please set GROQ_API_KEY in the Render dashboard."
+                ),
+            }
+
+        try:
+            response = await self._client.models.list()
+            model_ids = [m.id for m in response.data] if hasattr(response, "data") else []
+
+            active_model = self._resolve_model_against_account(model_ids)
+
+            return {
+                "available": True,
+                "provider": self.provider_name,
+                "model": active_model,
+                "installed_models": model_ids[:10],
+                "message": f"GroqCloud model '{active_model}' is online and ready.",
+            }
+        except AuthenticationError:
+            log.warning("Groq authentication probe failed (invalid API key)")
+            return {
+                "available": False,
+                "provider": self.provider_name,
+                "model": self._model,
+                "installed_models": [],
+                "message": "Groq authentication failed. Please check that GROQ_API_KEY is valid.",
+            }
+        except RateLimitError:
+            log.warning("Groq rate limit reached during health probe")
+            return {
+                "available": False,
+                "provider": self.provider_name,
+                "model": self._model,
+                "installed_models": [],
+                "message": "Groq rate limit reached. The service is temporarily throttling requests.",
+            }
+        except APITimeoutError:
+            log.warning("Groq health probe timed out")
+            return {
+                "available": False,
+                "provider": self.provider_name,
+                "model": self._model,
+                "installed_models": [],
+                "message": "Connection to GroqCloud timed out. Please check network connectivity.",
+            }
+        except APIConnectionError as exc:
+            log.warning("Groq connection error: %s", exc)
+            return {
+                "available": False,
+                "provider": self.provider_name,
+                "model": self._model,
+                "installed_models": [],
+                "message": f"Cannot reach Groq API endpoint at {self._base_url}.",
+            }
+        except APIStatusError as exc:
+            log.warning("Groq API returned HTTP %s during health check: %s", exc.status_code, exc.message)
+            return {
+                "available": False,
+                "provider": self.provider_name,
+                "model": self._model,
+                "installed_models": [],
+                "message": f"Groq API returned HTTP status {exc.status_code}.",
+            }
+        except Exception as exc:
+            log.warning("Unexpected error during Groq health check: %s", exc)
+            return {
+                "available": False,
+                "provider": self.provider_name,
+                "model": self._model,
+                "installed_models": [],
+                "message": "Groq AI service is currently unavailable.",
+            }
+
+    async def chat(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        temperature: float = 0.7,
+        top_p: float = 0.9,
+        max_tokens: int | None = 600,
+    ) -> str:
+        """Call Groq /openai/v1/chat/completions endpoint using the OpenAI SDK."""
+        if not self._api_key:
+            raise LLMUnavailableError(
+                "Groq AI service is not configured with an API key. "
+                "Please configure the GROQ_API_KEY environment variable on the backend."
+            )
+
+        try:
+            response = await self._client.chat.completions.create(
+                model=self._model,
+                messages=messages,  # type: ignore[arg-type]
+                temperature=temperature,
+                top_p=top_p,
+                max_tokens=max_tokens or 600,
+            )
+
+            choices = response.choices
+            if not choices:
+                raise LLMError("Groq model returned no response choices.", status_code=502)
+
+            content = (choices[0].message.content or "").strip()
+            if not content:
+                raise LLMError("Groq model returned an empty response.", status_code=502)
+
+            return content
+
+        except AuthenticationError:
+            log.error("Groq authentication failed during chat completion")
+            raise LLMError(
+                "Authentication failed with GroqCloud. Please verify GROQ_API_KEY in Render configuration.",
+                status_code=502,
+            ) from None
+        except NotFoundError as exc:
+            log.warning("Requested model '%s' not found on Groq: %s", self._model, exc)
+            if self._model != "llama-3.3-70b-versatile":
+                for fallback in self.FALLBACK_MODELS:
+                    try:
+                        log.info("Attempting automatic fallback to '%s' on Groq", fallback)
+                        fb_res = await self._client.chat.completions.create(
+                            model=fallback,
+                            messages=messages,  # type: ignore[arg-type]
+                            temperature=temperature,
+                            top_p=top_p,
+                            max_tokens=max_tokens or 600,
+                        )
+                        if fb_res.choices and (fb_res.choices[0].message.content or "").strip():
+                            self._model = fallback
+                            return fb_res.choices[0].message.content.strip()
+                    except Exception as fb_exc:
+                        log.warning("Fallback model '%s' failed: %s", fallback, fb_exc)
+            raise LLMError(
+                f"Model '{self._model}' is not available on this Groq account. "
+                "Please check GROQ_MODEL in environment variables.",
+                status_code=502,
+            ) from None
+        except RateLimitError:
+            log.warning("Groq rate limit hit during chat")
+            raise LLMError(
+                "Groq AI rate limit reached. Please pause for a few seconds before trying again.",
+                status_code=429,
+            ) from None
+        except APITimeoutError:
+            log.warning("Groq inference timed out after %.1f s", self._timeout)
+            raise LLMTimeoutError(self._timeout) from None
+        except APIConnectionError as exc:
+            log.warning("Cannot connect to Groq endpoint: %s", exc)
+            raise LLMUnavailableError(
+                f"Cannot connect to Groq API at {self._base_url}. Please check provider status."
+            ) from None
+        except BadRequestError as exc:
+            log.error("Bad request to Groq API: %s", exc)
+            raise LLMError(
+                "Invalid request sent to Groq AI. Please check message format or length.",
+                status_code=400,
+            ) from None
+        except APIStatusError as exc:
+            log.error("Groq API returned HTTP %s: %s", exc.status_code, exc.message)
+            raise LLMError(
+                f"Groq AI service error (HTTP {exc.status_code}). Please try again shortly.",
+                status_code=502,
+            ) from None
+        except LLMError:
+            raise
+        except Exception as exc:
+            log.error("Unexpected error during Groq chat inference: %s", exc)
             raise LLMError("An unexpected error occurred during AI inference.", status_code=500) from None
 

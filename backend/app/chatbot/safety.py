@@ -69,7 +69,7 @@ VERIFIED_CRISIS_RESOURCES: list[dict[str, str]] = [
 
 # High-risk patterns indicating immediate self-harm, suicidal ideation, or acute danger.
 CRISIS_PATTERNS = [
-    r"\b(?:kill|end|take)\s+(?:my\s*self|my\s*life)\b",
+    r"\b(?:kill(?:ing)?|end(?:ing)?|take|taking)\s+(?:my\s*self|my\s*life)\b",
     r"\b(?:suicide|suicidal)\b",
     r"\b(?:want|wish|ready)\s+to\s+die\b",
     r"\bbetter\s+off\s+dead\b",

@@ -223,10 +223,10 @@ export function Chat() {
         if (active) {
           setStatus({
             available: false,
-            provider: "ollama",
-            model: "qwen2.5:3b",
+            provider: "offline",
+            model: "",
             installed_models: [],
-            message: "Cannot connect to local backend or Ollama runtime.",
+            message: "Cannot connect to the Haven backend server.",
           });
           setStatusLoading(false);
         }
@@ -739,7 +739,9 @@ export function Chat() {
               <div className="companion-info">
                 <h2>Haven Companion</h2>
                 <p>
-                  Local AI Reflection Companion &bull; Private &bull; 100% On-Device
+                  {status?.provider === "groq"
+                    ? "AI Reflection Companion • Private • Confidential"
+                    : "Local AI Reflection Companion • Private • On-Device"}
                 </p>
               </div>
             </div>
@@ -779,15 +781,15 @@ export function Chat() {
                 )}
               </button>
 
-              {/* Local AI Runtime Status Pill */}
+              {/* AI Runtime Status Pill */}
               <div
                 className="status-pill"
                 onClick={() => setShowSetupGuide((v) => !v)}
-                title={status?.message || "Checking local model..."}
+                title={status?.message || "Checking AI runtime..."}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => e.key === "Enter" && setShowSetupGuide((v) => !v)}
-                aria-label="Toggle local model setup instructions"
+                aria-label="Toggle AI runtime information"
               >
                 <span
                   className={`status-dot ${status?.available ? "online" : "offline"}`}
@@ -797,8 +799,12 @@ export function Chat() {
                   {statusLoading
                     ? "Connecting..."
                     : status?.available
-                    ? `Local AI: ${status.model}`
-                    : "Local AI Offline"}
+                    ? `AI Online: ${status.model}`
+                    : status?.provider === "groq"
+                    ? "Groq AI Offline"
+                    : status?.provider === "ollama"
+                    ? "Local AI Offline"
+                    : "AI Offline"}
                 </span>
                 <HelpCircle size={13} aria-hidden="true" style={{ color: "var(--muted)" }} />
               </div>
@@ -840,7 +846,11 @@ export function Chat() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <strong>
                   <Terminal size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: "6px" }} />
-                  Local Inference Setup (Ollama)
+                  {status?.provider === "groq"
+                    ? "GroqCloud AI Runtime"
+                    : status?.provider === "ollama"
+                    ? "Local Inference Setup (Ollama)"
+                    : "AI Runtime Status"}
                 </strong>
                 <button
                   type="button"
@@ -850,16 +860,33 @@ export function Chat() {
                   Close
                 </button>
               </div>
-              <p style={{ margin: "6px 0 10px", color: "var(--muted)" }}>
-                Haven runs open-weight models on your machine. Ensure Ollama is active with <code>qwen2.5:3b</code>:
-              </p>
-              <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", fontSize: "12px" }}>
-                <span>1. <code>ollama serve</code></span>
-                <span>2. <code>ollama pull qwen2.5:3b</code></span>
-                <span>
-                  Status: <strong>{status?.available ? "Online & Ready" : "Unreachable"}</strong> ({status?.message})
-                </span>
-              </div>
+              {status?.provider === "groq" ? (
+                <>
+                  <p style={{ margin: "6px 0 10px", color: "var(--muted)" }}>
+                    Haven Companion is configured to use GroqCloud hosted inference:
+                  </p>
+                  <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", fontSize: "12px" }}>
+                    <span>Provider: <strong>GroqCloud</strong></span>
+                    <span>Model: <strong>{status?.model || "openai/gpt-oss-20b"}</strong></span>
+                    <span>
+                      Status: <strong>{status?.available ? "Online & Ready" : "Offline"}</strong> ({status?.message})
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p style={{ margin: "6px 0 10px", color: "var(--muted)" }}>
+                    Haven runs open-weight models locally. Ensure Ollama is active with <code>{status?.model || "qwen2.5:3b"}</code>:
+                  </p>
+                  <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", fontSize: "12px" }}>
+                    <span>1. <code>ollama serve</code></span>
+                    <span>2. <code>ollama pull {status?.model || "qwen2.5:3b"}</code></span>
+                    <span>
+                      Status: <strong>{status?.available ? "Online & Ready" : "Unreachable"}</strong> ({status?.message})
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -1043,7 +1070,9 @@ export function Chat() {
                   <span>{input.length} / 1500</span>
                   <span>
                     <Shield size={10} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />
-                    100% On-Device AI &bull; No Cloud Tracking
+                    {status?.provider === "groq"
+                      ? "Private AI Reflection • Confidential"
+                      : "100% On-Device AI • No Cloud Tracking"}
                   </span>
                 </div>
               </div>

@@ -14,7 +14,7 @@ from ..config import get_settings
 from ..emotion_fusion import get_fusion_service
 from ..nlp_analysis import get_nlp_service
 from ..security import new_id
-from .llm import BaseLLMProvider, OllamaProvider, OpenAICompatibleProvider
+from .llm import BaseLLMProvider, GroqProvider, OllamaProvider, OpenAICompatibleProvider
 from .memory import ConversationMemoryManager, get_memory_manager
 from .prompts import format_chat_messages, format_emotion_prompt_note
 from .safety import (
@@ -31,33 +31,44 @@ log = logging.getLogger("haven.chatbot.service")
 def create_default_llm_provider() -> BaseLLMProvider:
     """Create default LLM provider based on environment settings.
 
-    If hosted LLM settings or an API key are provided, uses OpenAICompatibleProvider.
-    Otherwise defaults to local OllamaProvider.
+    Priority:
+    1. AI_PROVIDER:
+       - 'groq': GroqProvider (GroqCloud via OpenAI SDK)
+       - 'ollama': OllamaProvider (local development)
+       - 'openrouter' / 'openai' / 'hosted': OpenAICompatibleProvider
+    2. Implicit provider from available keys:
+       - If GROQ_API_KEY is present: GroqProvider (production default)
+       - If LLM_PROVIDER is 'groq': GroqProvider
+       - If LLM_PROVIDER in ('openrouter', 'openai', 'hosted') or LLM_API_KEY is set: OpenAICompatibleProvider
+    3. Default: OllamaProvider (local development)
     """
     settings = get_settings()
-    is_hosted = (
-        bool(settings.llm_api_key.strip())
-        or settings.llm_provider.lower() in ("openrouter", "groq", "openai", "hosted")
-    )
-    if is_hosted:
-        provider = settings.llm_provider.lower()
-        base_url = settings.llm_base_url.strip()
-        model = settings.llm_model.strip()
 
-        if provider == "groq":
-            base_url = base_url or "https://api.groq.com/openai/v1"
-            model = model or "llama-3.1-8b-instant"
-            provider_name = "groq"
+    provider_choice = (settings.ai_provider or "").strip().lower()
+    if not provider_choice:
+        if settings.groq_api_key.strip():
+            provider_choice = "groq"
+        elif settings.llm_provider.strip().lower() in ("groq", "openrouter", "openai", "hosted") or settings.llm_api_key.strip():
+            provider_choice = settings.llm_provider.strip().lower()
         else:
-            base_url = base_url or "https://openrouter.ai/api/v1"
-            model = model or "qwen/qwen-2.5-7b-instruct:free"
-            provider_name = "openrouter"
+            provider_choice = "ollama"
 
+    if provider_choice == "groq":
+        return GroqProvider(
+            api_key=settings.groq_api_key or settings.llm_api_key,
+            model=settings.groq_model or settings.llm_model,
+            base_url=settings.groq_base_url or settings.llm_base_url,
+            timeout=settings.ollama_timeout_seconds,
+        )
+
+    if provider_choice in ("openrouter", "openai", "hosted"):
+        base_url = settings.llm_base_url.strip() or "https://openrouter.ai/api/v1"
+        model = settings.llm_model.strip() or "qwen/qwen-2.5-7b-instruct:free"
         return OpenAICompatibleProvider(
-            api_key=settings.llm_api_key,
+            api_key=settings.llm_api_key or settings.groq_api_key,
             base_url=base_url,
             model=model,
-            provider_name=provider_name,
+            provider_name=provider_choice,
             timeout=settings.ollama_timeout_seconds,
         )
 
@@ -253,3 +264,10 @@ def get_chatbot_service() -> ChatbotService:
     if _service is None:
         _service = ChatbotService()
     return _service
+
+
+def reset_chatbot_service() -> None:
+    """Reset the global ChatbotService instance and clear cached settings (for test isolation)."""
+    global _service
+    _service = None
+    get_settings.cache_clear()

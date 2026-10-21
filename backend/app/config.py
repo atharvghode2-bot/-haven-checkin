@@ -20,7 +20,13 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://127.0.0.1:11434"
     ollama_model: str = "qwen2.5:3b"
     ollama_timeout_seconds: float = 30.0
-    # Hosted LLM configuration (optional: OpenRouter, Groq, or OpenAI-compatible)
+    # Hosted AI Provider (GroqCloud production integration)
+    ai_provider: str = ""  # "groq", "ollama", "openrouter", "openai", or "hosted"
+    groq_api_key: str = ""
+    groq_model: str = "openai/gpt-oss-20b"
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+
+    # Hosted LLM configuration (optional: OpenRouter, Groq, or OpenAI-compatible legacy settings)
     llm_provider: str = "ollama"  # "ollama", "openrouter", "groq", or "hosted"
     llm_api_key: str = ""
     llm_base_url: str = ""

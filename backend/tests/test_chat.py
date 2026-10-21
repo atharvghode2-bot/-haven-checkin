@@ -148,7 +148,7 @@ def test_chat_api_endpoints() -> None:
         status_data = res.json()
         assert "available" in status_data
         assert "provider" in status_data
-        assert status_data["provider"] == "ollama"
+        assert status_data["provider"] in ("ollama", "groq", "openrouter")
 
         # Also verify /chat/status alias
         alias_res = client.get("/chat/status")
@@ -294,12 +294,104 @@ def test_real_local_llm_inference() -> None:
         print(f"Follow-up with camera disabled reply: {turn3_data['reply'][:120]}...")
 
 
+def test_groq_provider_configuration_and_resilience() -> None:
+    """Test Groq provider initialization, account model resolution, and safety isolation."""
+    import asyncio
+    import os
+    from app.chatbot.llm import GroqProvider, LLMUnavailableError
+    from app.chatbot.service import (
+        ChatbotService,
+        create_default_llm_provider,
+        reset_chatbot_service,
+    )
+    from app.config import get_settings
+
+    # 1. GroqProvider initialization without API key
+    provider = GroqProvider(api_key="", model="openai/gpt-oss-20b")
+    assert provider.provider_name == "groq"
+    assert provider.model_name == "openai/gpt-oss-20b"
+
+    # Health check without key must report available=False truthfully and safely
+    health = asyncio.run(provider.check_health())
+    assert health["available"] is False
+    assert health["provider"] == "groq"
+    assert "GROQ_API_KEY" in health["message"]
+
+    # Chat without key must raise LLMUnavailableError
+    try:
+        asyncio.run(provider.chat([{"role": "user", "content": "Hello"}]))
+        assert False, "Should have raised LLMUnavailableError"
+    except LLMUnavailableError as exc:
+        assert "GROQ_API_KEY" in str(exc)
+
+    # 2. Test account model resolution
+    # Case A: Account supports openai/gpt-oss-20b
+    res_a = provider._resolve_model_against_account(["llama-3.1-8b-instant", "openai/gpt-oss-20b"])
+    assert res_a == "openai/gpt-oss-20b"
+
+    # Case B: Account does not have openai/gpt-oss-20b -> must fall back to llama-3.3-70b-versatile or llama-3.1-8b-instant
+    provider_fallback = GroqProvider(api_key="mock-key", model="openai/gpt-oss-20b")
+    res_b = provider_fallback._resolve_model_against_account(["llama-3.1-8b-instant", "gemma2-9b-it"])
+    assert res_b == "llama-3.1-8b-instant"
+
+    # Case C: Account has llama-3.3-70b-versatile
+    provider_fallback_70b = GroqProvider(api_key="mock-key", model="openai/gpt-oss-20b")
+    res_c = provider_fallback_70b._resolve_model_against_account(["llama-3.3-70b-versatile", "llama-3.1-8b-instant"])
+    assert res_c == "llama-3.3-70b-versatile"
+
+    # 3. Test priority in create_default_llm_provider
+    old_env = dict(os.environ)
+    try:
+        # With AI_PROVIDER=groq
+        os.environ["AI_PROVIDER"] = "groq"
+        os.environ["GROQ_API_KEY"] = "gsk_test_123"
+        get_settings.cache_clear()
+        groq_prov = create_default_llm_provider()
+        assert isinstance(groq_prov, GroqProvider)
+        assert groq_prov.provider_name == "groq"
+
+        # Deterministic crisis interception still works even when Groq is the provider
+        groq_service = ChatbotService(llm_provider=groq_prov)
+        crisis_reply = asyncio.run(
+            groq_service.process_message("I am thinking of ending my life tonight.")
+        )
+        assert crisis_reply["safety_status"] == "crisis_intercepted"
+        assert crisis_reply["provider"] == "groq"
+        assert len(crisis_reply["crisis_resources"]) > 0
+
+    finally:
+        os.environ.clear()
+        os.environ.update(old_env)
+        reset_chatbot_service()
+
+    # 4. Live GroqCloud call if real key is configured
+    live_key = os.getenv("GROQ_API_KEY", "")
+    if live_key and live_key.startswith("gsk_"):
+        print("Detected real GROQ_API_KEY in environment. Running live Groq test...")
+        live_provider = GroqProvider(api_key=live_key)
+        live_health = asyncio.run(live_provider.check_health())
+        print("Live Groq health check result:", live_health)
+        assert "available" in live_health
+        if live_health["available"]:
+            live_reply = asyncio.run(
+                live_provider.chat([
+                    {"role": "system", "content": "You are Haven Companion."},
+                    {"role": "user", "content": "Hi, can you give me one brief wellness tip?"},
+                ], max_tokens=60)
+            )
+            print("Live Groq reply:", live_reply)
+            assert len(live_reply) > 5
+    else:
+        print("No live GROQ_API_KEY set in test environment. Skipping live network inference.")
+
+
 if __name__ == "__main__":
     test_safety_deterministic_crisis()
     test_emotion_context_validation()
     test_system_prompt_emotion_cue_formatting()
     test_memory_isolation_and_bounds()
     test_chat_api_endpoints()
+    test_groq_provider_configuration_and_resilience()
     test_real_local_llm_inference()
-    print("ALL CHAT & EMOTION INTEGRATION TESTS PASSED SUCCESSFULLY!")
+    print("ALL CHAT, GROQ & EMOTION INTEGRATION TESTS PASSED SUCCESSFULLY!")
 
